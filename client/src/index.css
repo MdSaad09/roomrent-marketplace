@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded font-medium transition duration-300;
+  }
+  .btn-primary {
+    @apply  text-white hover:bg-indigo-700;
+  }
+  .btn-secondary {
+    @apply text-white hover:bg-emerald-700;
+  }
+  .input-field {
+    @apply w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 ;
+  }
+}
