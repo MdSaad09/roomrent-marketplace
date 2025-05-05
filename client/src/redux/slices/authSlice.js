@@ -202,6 +202,36 @@ export const addToFavorites = createAsyncThunk(
   }
 );
 
+export const changePassword = createAsyncThunk(
+  'auth/changePassword',
+  async ({ currentPassword, newPassword }, { rejectWithValue, dispatch }) => {
+    try {
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      };
+
+      const { data } = await axios.put(
+        '/api/auth/password',
+        { currentPassword, newPassword },
+        config
+      );
+      
+      dispatch(setAlert({ type: 'success', message: 'Password changed successfully' }));
+      
+      return data;
+    } catch (error) {
+      dispatch(setAlert({ 
+        type: 'error', 
+        message: error.response?.data?.message || 'Failed to change password' 
+      }));
+      return rejectWithValue(error.response?.data || { message: 'Failed to change password' });
+    }
+  }
+);
+
 // Remove from favorites
 export const removeFromFavorites = createAsyncThunk(
   'auth/removeFromFavorites',
@@ -254,6 +284,16 @@ const authSlice = createSlice({
       if (action.payload) {
         state.user = action.payload;
         localStorage.setItem('user', JSON.stringify(action.payload));
+      }
+    },
+    // Add updateUser reducer - this is what Profile.jsx is trying to import
+    updateUser: (state, action) => {
+      if (action.payload) {
+        state.user = { ...state.user, ...action.payload };
+        // Update localStorage
+        if (state.user) {
+          localStorage.setItem('user', JSON.stringify(state.user));
+        }
       }
     }
   },
@@ -332,6 +372,19 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+
+        // Change password
+      .addCase(changePassword.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(changePassword.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(changePassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
       
       // Get user favorites
       .addCase(getUserFavorites.pending, (state) => {
@@ -400,5 +453,5 @@ const authSlice = createSlice({
   }
 });
 
-export const { resetAuthState, updateUserState } = authSlice.actions;
+export const { resetAuthState, updateUserState, updateUser } = authSlice.actions;
 export default authSlice.reducer;

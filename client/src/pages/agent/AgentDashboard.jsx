@@ -1,9 +1,10 @@
 // client/src/pages/agent/AgentDashboard.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUserProperties, deleteProperty } from '../../redux/slices/propertySlice';
-import { FaPlus, FaEdit, FaTrash, FaEye, FaExclamationCircle } from 'react-icons/fa';
+import { fetchAgentDashboardStats } from '../../redux/slices/agentSlice';
+import { FaPlus, FaEdit, FaTrash, FaEye, FaExclamationCircle, FaChartLine, FaHome } from 'react-icons/fa';
 import PropertyCard from '../../components/properties/PropertyCard';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import Loader from '../../components/common/Loader';
@@ -11,7 +12,8 @@ import Message from '../../components/common/Message';
 
 const AgentDashboard = () => {
   const dispatch = useDispatch();
-  const { userProperties, loading, error } = useSelector(state => state.properties);
+  const { userProperties, loading: propertiesLoading, error: propertiesError } = useSelector(state => state.properties);
+  const { agentDashboardStats, loading: statsLoading, error: statsError } = useSelector(state => state.agents);
   const { user } = useSelector(state => state.auth);
   
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -20,6 +22,7 @@ const AgentDashboard = () => {
   
   useEffect(() => {
     dispatch(fetchUserProperties());
+    dispatch(fetchAgentDashboardStats());
   }, [dispatch]);
   
   const openDeleteModal = (property) => {
@@ -34,6 +37,9 @@ const AgentDashboard = () => {
     try {
       await dispatch(deleteProperty(propertyToDelete._id)).unwrap();
       setDeleteModalOpen(false);
+      // Refresh dashboard stats after deletion
+      dispatch(fetchAgentDashboardStats());
+      dispatch(fetchUserProperties());
     } catch (error) {
       console.error('Failed to delete property:', error);
     } finally {
@@ -45,12 +51,71 @@ const AgentDashboard = () => {
   const publishedProperties = userProperties?.filter(prop => prop.published) || [];
   const pendingProperties = userProperties?.filter(prop => !prop.published) || [];
   
-  if (loading && !userProperties.length) {
+  const isLoading = (propertiesLoading || statsLoading) && !userProperties.length && !agentDashboardStats;
+  
+  // Helper function to safely render property images
+  const renderPropertyImage = (property) => {
+    // Check if property has images
+    if (!property.images || !Array.isArray(property.images) || property.images.length === 0) {
+      return (
+        <div className="h-10 w-10 bg-gray-200 flex items-center justify-center rounded-md">
+          <FaHome className="text-gray-400" />
+        </div>
+      );
+    }
+    
+    // Get the first image
+    const image = property.images[0];
+    
+    // Handle different image formats
+    let imageUrl;
+    if (typeof image === 'string') {
+      imageUrl = image;
+    } else if (image && image.url) {
+      imageUrl = image.url;
+    } else if (image && image.public_id) {
+      imageUrl = `/uploads/${image.public_id}`;
+    } else {
+      console.warn('Unknown image format:', image);
+      imageUrl = '/images/property-placeholder.jpg';
+    }
+    
+    return (
+      <img 
+        src={imageUrl} 
+        alt={property.title || "Property"}
+        className="h-10 w-10 rounded-md object-cover"
+        onError={(e) => {
+          console.error('Failed to load image:', imageUrl);
+          e.target.src = '/images/property-placeholder.jpg';
+        }}
+      />
+    );
+  };
+  
+  // Helper function to format address
+  const formatAddress = (property) => {
+    if (!property) return '';
+    
+    if (property.location) return property.location;
+    
+    if (property.address) {
+      const { city, state } = property.address;
+      if (city && state) return `${city}, ${state}`;
+      if (city) return city;
+      if (state) return state;
+    }
+    
+    return 'Location not available';
+  };
+  
+  if (isLoading) {
     return <Loader />;
   }
   
+  const error = propertiesError || statsError;
   if (error) {
-    return <Message variant="danger">{error.message || 'Failed to load properties'}</Message>;
+    return <Message variant="danger">{error.message || 'Failed to load dashboard data'}</Message>;
   }
   
   return (
@@ -66,19 +131,23 @@ const AgentDashboard = () => {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div className="flex items-center mb-4 md:mb-0">
               <img 
-                src={user?.avatar || 'https://via.placeholder.com/60'} 
-                alt={user?.name}
+                src={user?.avatar || 'https://via.placeholder.com/60'}
+                alt={user?.name || 'Agent'}
                 className="h-16 w-16 rounded-full object-cover mr-4"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'https://via.placeholder.com/60?text=Agent';
+                }}
               />
               <div>
-                <h2 className="text-xl font-semibold text-gray-800">{user?.name}</h2>
-                <p className="text-gray-600">{user?.email}</p>
+                <h2 className="text-xl font-semibold text-gray-800">{user?.name || 'Agent'}</h2>
+                <p className="text-gray-600">{user?.email || 'No email'}</p>
                 <p className="text-gray-600">{user?.phone || 'No phone number'}</p>
               </div>
             </div>
             
             <Link 
-              to="/profile"
+              to="/agent/profile"
               className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
             >
               Edit Profile
@@ -86,23 +155,96 @@ const AgentDashboard = () => {
           </div>
         </div>
         
-        {/* Statistics */}
+        {/* Statistics - Now using agentDashboardStats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="font-semibold text-lg mb-2">Total Properties</h3>
-            <p className="text-3xl font-bold text-indigo-600">{userProperties?.length || 0}</p>
+            <p className="text-3xl font-bold text-indigo-600">
+              {agentDashboardStats?.totalProperties || userProperties?.length || 0}
+            </p>
           </div>
           
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="font-semibold text-lg mb-2">Published</h3>
-            <p className="text-3xl font-bold text-green-600">{publishedProperties.length}</p>
+            <p className="text-3xl font-bold text-green-600">
+              {agentDashboardStats?.publishedProperties || publishedProperties.length}
+            </p>
           </div>
           
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="font-semibold text-lg mb-2">Pending Approval</h3>
-            <p className="text-3xl font-bold text-yellow-600">{pendingProperties.length}</p>
+            <p className="text-3xl font-bold text-yellow-600">
+              {agentDashboardStats?.unpublishedProperties || pendingProperties.length}
+            </p>
           </div>
         </div>
+        
+        {/* Recent Activity - New section using dashboard stats */}
+        {agentDashboardStats?.recentProperties && agentDashboardStats.recentProperties.length > 0 && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h3 className="font-semibold text-lg mb-4 flex items-center">
+              <FaChartLine className="mr-2 text-indigo-600" /> Recent Activity
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Added</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {agentDashboardStats.recentProperties.map(property => (
+                    <tr key={property._id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 flex-shrink-0">
+                            {renderPropertyImage(property)}
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">{property.title}</div>
+                            <div className="text-sm text-gray-500">{formatAddress(property)}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">${property.price?.toLocaleString() || 'N/A'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          property.published 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {property.published ? 'Published' : 'Pending'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {property.createdAt ? new Date(property.createdAt).toLocaleDateString() : 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <Link to={`/properties/${property._id}`} className="text-blue-600 hover:text-blue-900">
+                            <FaEye />
+                          </Link>
+                          <Link to={`/agent/properties/edit/${property._id}`} className="text-indigo-600 hover:text-indigo-900">
+                            <FaEdit />
+                          </Link>
+                          <button onClick={() => openDeleteModal(property)} className="text-red-600 hover:text-red-900">
+                            <FaTrash />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
         
         {/* Action Button */}
         <div className="mb-8 flex justify-end">

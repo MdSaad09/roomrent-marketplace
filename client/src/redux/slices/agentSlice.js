@@ -5,6 +5,7 @@ import { setAlert } from './uiSlice';
 const initialState = {
   agents: [],
   agent: null,
+  agentDashboardStats: null,
   loading: false,
   error: null,
   pagination: {
@@ -54,6 +55,34 @@ export const fetchAgentProperties = createAsyncThunk(
   }
 );
 
+// NEW: Update agent profile
+export const updateAgentProfile = createAsyncThunk(
+  'agents/updateAgentProfile',
+  async (profileData, { rejectWithValue, dispatch }) => {
+    try {
+      const { data } = await axios.put('/api/agents/profile', profileData);
+      dispatch(setAlert({ type: 'success', message: 'Profile updated successfully' }));
+      return data;
+    } catch (error) {
+      dispatch(setAlert({ type: 'error', message: error.response?.data?.message || 'Failed to update profile' }));
+      return rejectWithValue(error.response?.data || { message: 'Failed to update profile' });
+    }
+  }
+);
+
+// NEW: Get agent dashboard stats
+export const fetchAgentDashboardStats = createAsyncThunk(
+  'agents/fetchAgentDashboardStats',
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data } = await axios.get('/api/agents/dashboard/stats');
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch dashboard stats' });
+    }
+  }
+);
+
 const agentSlice = createSlice({
   name: 'agents',
   initialState,
@@ -85,7 +114,7 @@ const agentSlice = createSlice({
             state.pagination = {
               currentPage: action.payload.pagination?.page || 1,
               totalPages: action.payload.pagination?.pages || 1,
-              total: action.payload.count || 0
+              total: action.payload.total || 0
             };
           }
         } else {
@@ -127,6 +156,39 @@ const agentSlice = createSlice({
         }
       })
       .addCase(fetchAgentProperties.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
+      // NEW: Update agent profile
+      .addCase(updateAgentProfile.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateAgentProfile.fulfilled, (state, action) => {
+        state.loading = false;
+        // Update the agent data in the state
+        if (action.payload && action.payload.data) {
+          state.agent = action.payload.data;
+        }
+      })
+      .addCase(updateAgentProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
+      // NEW: Fetch agent dashboard stats
+      .addCase(fetchAgentDashboardStats.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAgentDashboardStats.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload && action.payload.data) {
+          state.agentDashboardStats = action.payload.data;
+        }
+      })
+      .addCase(fetchAgentDashboardStats.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })

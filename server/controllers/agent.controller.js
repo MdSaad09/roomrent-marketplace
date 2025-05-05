@@ -21,11 +21,18 @@ exports.getAgents = async (req, res) => {
       });
     }
     
+    // Filter by property count (agents with properties)
+    if (req.query.hasProperties === 'true') {
+      // Get agent IDs who have properties
+      const agentIds = await Property.distinct('owner', { published: true });
+      query = query.find({ _id: { $in: agentIds } });
+    }
+    
     // Pagination
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
     const startIndex = (page - 1) * limit;
-    const total = await User.countDocuments({ role: 'agent' });
+    const total = await User.countDocuments(query);
     
     query = query.skip(startIndex).limit(limit);
     
@@ -98,6 +105,160 @@ exports.getAgentById = async (req, res) => {
     });
   } catch (err) {
     console.error('Error in getAgentById:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
+
+// @desc    Update agent profile
+// @route   PUT /api/agents/profile
+// @access  Private (Agent only)
+exports.updateAgentProfile = async (req, res) => {
+  try {
+    // Ensure the user is an agent (middleware should handle this)
+    if (req.user.role !== 'agent') {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to access this route'
+      });
+    }
+
+    const fieldsToUpdate = {
+      name: req.body.name,
+      phone: req.body.phone,
+      bio: req.body.bio
+    };
+
+    // Handle avatar update if provided
+    if (req.body.avatar) {
+      fieldsToUpdate.avatar = req.body.avatar;
+    }
+
+    const agent = await User.findByIdAndUpdate(
+      req.user.id,
+      fieldsToUpdate,
+      {
+        new: true,
+        runValidators: true
+      }
+    ).select('-password');
+
+    res.status(200).json({
+      success: true,
+      data: agent
+    });
+  } catch (err) {
+    console.error('Error in updateAgentProfile:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
+
+// @desc    Get agent dashboard stats
+// @route   GET /api/agents/dashboard
+// @access  Private (Agent only)
+exports.getAgentDashboardStats = async (req, res) => {
+  try {
+    // Ensure the user is an agent (middleware should handle this)
+    if (req.user.role !== 'agent') {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to access this route'
+      });
+    }
+
+    // Get total properties count
+    const totalProperties = await Property.countDocuments({
+      owner: req.user.id
+    });
+
+    // Get published properties count
+    const publishedProperties = await Property.countDocuments({
+      owner: req.user.id,
+      published: true
+    });
+
+    // Get recent properties (last 5)
+    const recentProperties = await Property.find({
+      owner: req.user.id
+    })
+    .sort({ createdAt: -1 })
+    .limit(5);
+
+    // If you have views/inquiries models, you could count those too
+    // const totalViews = await PropertyView.countDocuments({
+    //   property: { $in: await Property.find({ owner: req.user.id }).select('_id') }
+    // });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalProperties,
+        publishedProperties,
+        unpublishedProperties: totalProperties - publishedProperties,
+        recentProperties
+        // totalViews
+      }
+    });
+  } catch (err) {
+    console.error('Error in getAgentDashboardStats:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
+
+// @desc    Get agent's properties
+// @route   GET /api/agents/properties
+// @access  Private (Agent only)
+exports.getAgentProperties = async (req, res) => {
+  try {
+    // Ensure the user is an agent (middleware should handle this)
+    if (req.user.role !== 'agent') {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to access this route'
+      });
+    }
+
+    // Build query
+    let query = { owner: req.user.id };
+
+    // Filter by published status if provided
+    if (req.query.published !== undefined) {
+      query.published = req.query.published === 'true';
+    }
+
+    // Pagination
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const startIndex = (page - 1) * limit;
+    
+    const total = await Property.countDocuments(query);
+    
+    // Get properties
+    const properties = await Property.find(query)
+      .sort({ createdAt: -1 })
+      .skip(startIndex)
+      .limit(limit);
+    
+    res.status(200).json({
+      success: true,
+      count: properties.length,
+      total,
+      pagination: {
+        page,
+        pages: Math.ceil(total / limit)
+      },
+      data: properties
+    });
+  } catch (err) {
+    console.error('Error in getAgentProperties:', err);
     res.status(500).json({
       success: false,
       message: 'Server error'

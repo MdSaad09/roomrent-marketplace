@@ -7,7 +7,8 @@ const {
   logout,
   updateProfile,
   getAgents,
-  getAgentProfile
+  getAgentProfile,
+  changePassword
 } = require('../controllers/auth.controller.js');
 const { protect } = require('../middleware/auth.middleware.js');
 
@@ -30,6 +31,17 @@ router.post(
     check('password', 'Password is required').exists()
   ],
   login
+);
+
+// Add this after the updateProfile route
+router.put(
+  '/password',
+  [
+    check('currentPassword', 'Current password is required').exists(),
+    check('newPassword', 'New password must be at least 6 characters').isLength({ min: 6 })
+  ],
+  protect,
+  changePassword
 );
 
 router.get('/me', protect, getMe);

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../../redux/slices/authSlice';
-import { FaHome, FaUser, FaSignOutAlt, FaSignInAlt, FaUserPlus, FaTachometerAlt } from 'react-icons/fa';
+import { FaHome, FaUser, FaSignOutAlt, FaSignInAlt, FaUserPlus, FaTachometerAlt, FaBuilding } from 'react-icons/fa';
 import { HiMenu, HiX } from 'react-icons/hi';
 import Logo from '../common/Logo';
 
@@ -40,8 +40,6 @@ const Navbar = () => {
               >
                 Properties
               </Link>
-
-              
             </div>
           </div>
           
@@ -55,6 +53,16 @@ const Navbar = () => {
                     className="text-gray-500 hover:text-primary px-3 py-2 rounded-md text-sm font-medium"
                   >
                     <FaTachometerAlt className="mr-1 inline" /> Admin Dashboard
+                  </Link>
+                )}
+                
+                {/* Agent-only dashboard link */}
+                {user?.role === 'agent' && (
+                  <Link 
+                    to="/agent" 
+                    className="text-gray-500 hover:text-primary px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    <FaBuilding className="mr-1 inline" /> Agent Dashboard
                   </Link>
                 )}
                 
@@ -134,7 +142,6 @@ const Navbar = () => {
             >
               Properties
             </Link>
-            
           </div>
           <div className="pt-4 pb-3 border-t border-gray-200">
             {isAuthenticated ? (
@@ -147,6 +154,17 @@ const Navbar = () => {
                     onClick={() => setIsOpen(false)}
                   >
                     <FaTachometerAlt className="mr-1 inline" /> Admin Dashboard
+                  </Link>
+                )}
+                
+                {/* Agent-only dashboard link */}
+                {user?.role === 'agent' && (
+                  <Link 
+                    to="/agent" 
+                    className="text-gray-500 hover:bg-gray-50 hover:text-primary block px-3 py-2 rounded-md text-base font-medium"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <FaBuilding className="mr-1 inline" /> Agent Dashboard
                   </Link>
                 )}
                 

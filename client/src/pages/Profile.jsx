@@ -1,23 +1,49 @@
 // client/src/pages/dashboard/Profile.jsx
-import React, { useState } from 'react';
-import { FaSave, FaUser, FaEnvelope, FaPhone, FaInfoCircle } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { updateAgentProfile } from '../redux/slices/agentSlice';
+import { updateUser, changePassword } from '../redux/slices/authSlice';
+import { FaSave, FaUser, FaEnvelope, FaPhone, FaInfoCircle, FaLock, FaCamera } from 'react-icons/fa';
+import axios from 'axios';
 
 const Profile = () => {
+  const dispatch = useDispatch();
+  const { user } = useSelector(state => state.auth);
+  const { loading: agentLoading } = useSelector(state => state.agents);
+  const [profileLoading, setProfileLoading] = useState(false);
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    bio: 'Real estate enthusiast with a passion for finding the perfect home for clients.',
-    avatar: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBw8QDxUQDw8VFRAPFRUVDxUVDxUVFRUVFRUXFxUVFRUYHSggGBolHRUVITEhJSkrLi4uFx8zODMtNygtLisBCgoKDg0OGxAQGzUlICUtLTUvLS4rNy0uLy0tLS0tLS0uLS0tLS0wLS0tLS0tLSsuLS0tLS0tLS0tLS0tLSstLf/AABEIAOEA4QMBEQACEQEDEQH/xAAcAAEBAQACAwEAAAAAAAAAAAAAAQIFBgMEBwj/xABEEAACAQICBAsFBgMGBwAAAAAAAQIDEQQhBRIxUQYHE0FTYXGBkbHSFiJSocEjMmKS0eFCcvAUJGOTwvEzQ2RzgrKz/8QAGgEBAAIDAQAAAAAAAAAAAAAAAAEEAgMFBv/EADIRAQABAgIHBgYCAwEAAAAAAAABAgMR0QQFFSExUaESQVJxgfATIjJhkbFC4QaS8TP/2gAMAwEAAhEDEQA/APsoAABIu4FAAAAAABQFgFgFgFgFgFgAEAkXdXAoAAAAAAAACgQABmTAsQKAAAALYCMCqIFQFsBbALASwCwEsBhsCpAUCAAAACMABUwKBAMuQCKA0AAAUCpAWwEiBdoFSAtgPRlpjCKWo8VQU9mq69NSv2XuB7sc1dZp7GtjAtgIBiTv2AWMQLYCWAlgIAAASLAr3+ABICgRoDMYgaAAALYCpAaAAGgDaSbbskrtvJJc7e5AfMeGvG3Sw8lS0ZyWInnytSTm6UGraqjq25W+ecZWVusD5vwj4xNJ4+lyNarCFJu8o0ISp6/VNuTbj1XtvuQOpai2WVuwD3MHpPE0YuFDE1qUHtjTxFSnF9sYySA9/D8K9JU4xjHH4jVhONRJ15yWtFpq+s22sl7ry6gPpHAfjYr18TTwukIU2q8lCnWpxcGpydoKcbtNNtK6ta6ya2SPr6Wee3cBqwEAARoDLAgAA0AQACgQAAAAUDSQFAtgKBJyUU5SaUYpuTbsklm23zID888ZXGDU0jUlh8NJwwEG0ksniGv45/g+GHe88owOhpgaa513rd+wGQAFS53s8+pAVTaaabTi04tNpxad009qd87geSliZKtCvJKpOnOM/tdaak4tO087uLtZq+abA/QvF1xg0tKJ0alNUcXTjrOCd4VIKyc6d81a6vF7LrNkjvAEAgEaAjAyAAAAKBAAACoDSAoFAoFSA+V8fempU8NRwUJNf2qUp1rc9Ola0X1OUov/AMAPh5AAVMCtc671u/YCJc72efUgDdwIAA5Lg1pV4PG0MUnbkKsZT/7berUXfByXeB+smiRAIBAI0BlgQAAAoEAAVAVIDQFAoFSAoH5247MdyumJwTyw1KlStubTqv8A+i8CB0MD6Xwb4qJ1qMauMryoyqJSjShBOcU9nKOWx2t7tst/MtVV3CdzbTaxje8WluKPGQl/da9KrD/EvSmurJSjLtuuwRdjvJtT3PQpcVulr5xopb3iF9IvyJ+LSj4VTlqHE9iJJOrjaUJWzjCjOol2Sco38CPjRyZfBnm9bEcUGOU7U8Th5Q+KXKU5fkUZeY+NCJtSlfiix6jeGIw8pfC3Uj4S1WPjQfCl0fSujK+FquhiaTp1Y5uLtmnslFrKUXZ5rc9xsiYng1zExul6VRXi1vTJQ/XWhMRyuFoVb35WjSnffrQi/qSPcaAgEAgEYGWBAAFAgADSA0BUBQKkBQAH5b4xKuvpjGy/x5R/IlD/AEkDy8XGhv7ZpKlGSvTofbVd1qbWqu+bhluuYV1YUs6KcZfoYqrQAAAAAHSeNnQccTo+VdRXLYNOrCXPya/4sezV962+CNlurCWu5TjGL4Q2WVZ+r+B9F09G4OEvvQwuHi+2NGCfkSOXAjQEAjAgGWBAIBQIBUBpAVAaAqAoACgfljh/T1dLY1f9RUf5nrfUgfTOJrQ3I4KWKkvfxkvdyz5Km3GHjLXl2NFe7O/BYtRhGL6Amam1QAAAAA8WJoRqQlTl92pGUJdkk0/MlD8rYmlKEZQl96GtGX80bp/NMuKb9i0KajCMVsjFJdysSNgQCMCAZYEYGWBIu4FAgADSj2gaiwNIDSAAUCgfmDjUw8qemsYrP3pxnHrU6UGrd7aA+7aDoqnhKEIqyhRpRS7IRRTnjitRwe6iGakAAAAACJQ/OeOwbqaTlh6lJJYjFyhHVSTtUxDindduaLccFSeL9TXMkAEAAZAjAjA8TYFSAoAAgNAaSA0gKBUAAoHxPjswNNYqjjVa1SHI1XKK1fs25q1+dxlPug7Z7cKa4qncyqpmOL6Nopf3elfbydP/ANEVZ4rMcHtkMgAAAAAEXYlD51o/QinwjnUqR+zw0nXglvnCMlJ9evNNL8PhYiuIpiZV5omapiH16DTV1sZsicWudykgwIBGBlgeOTuAUQDAAEBbAaSA0gKgKBQKBmpG6aIkh8+4ycDGvouvCUbtcm49TVSCuu5td7KtE/Ms1x8rtDRg2AAAAAAAIBwuiMKljsdWtnOWHpp/hp4eE8u+qzKZ3QxiN8y7hhFanH+ucs2/phXr+qXmM2CAQAwMTVwMpeIBgZYAAgNIDSAqA0gAFAoFQHX9N4JVY1aLyVRNX3N5p+NipVuqWqd9LyMwZgAAAAAAAGYU1d2VnNpy63ZRu+5JdxKODnbF1TAIAAjAywIwMsDLAAEBtAVAVAaAoACgUD0MfQbetFXvtsaLtMzOMN1qqIjCXpGhvAAAAAAAAPZwdBuSbWSzv5G23RMzi1XK4wwcmWVdAIAAgGQIwIwMMAAQG0BUBUBoCgAKBQAHC1VaTW5vzKU8VyODJCQAAAAAIBzVJWiluS8i7TwhTni2ShAIAAgGQIwIwMMAAQGkBpAVAaQACgUCgAOMx9K0r80vPnK12nCcVi1VjGD1jU2gAAAAAeTD0taSXNz9hlTT2pY11YQ5guKgBAIAAgGWBGBlgZYAAgNICgWEr8wG0AAoFAAUDxYmCcGnuuu1GNcY0sqZwlw0JXVynE4rcxg0AAAAI2Jkcno2K1FLnlf5OyLNmPlxVrs/Ng9ps2tbMXdbLAUCAQAwMsCMDLAywAACoCOQG4IDaAoFQACgRsDFRe6+x+RFXBMcXXYStsOdG5f4vYhNMzicWMxg2SgAzKSW0TOA9ec7muZxZxGDnNGv7GPf5su2fohTu/XLzN3+hta2ooCgRgQCMCAeN5gRoCXAoEAjlcDcUBtAVAaQACgUDK/2A8eJlaEm9zMa5wpllRGNUOvHOXgJeRVmZdqWPZHWY7R2WG7mLJAOY0ZO9JL4W8u+5dsT8ine+p70UbmpQIBAAGQIBhfMCMCAUCNAIreBtAVAaAqAoFAAeDE4qEF7zz5ktv7Guu5TTxZ00TVwcPicVKo88lzL9d7Kldya1qi3FLwGtsAAAABGgPLQryhLWTz5+vtM6a5pnGGE0RMYS5nC46E8tktz+jLdF2mpVrtTS9k2tYBAIwIBGBiSAgEAoEAoFQGgKgKB4cXjqNGOtWqRgubWklfsXOZ0W665wpjFruXrduMa5iPN1vSHDzDQyowlUfM/uR8Xn8i/a1Zcq+qcOrlXtd2aN1ETV0j36OKwnDirUqatZRhTl91wT93+Zt3t1qxOl6rqi3jZmcY7ufkw0LXdNV3s34iKZ4Ty883OKV873vne979dzzUxMTvesiYmMYCEgAAAAAAAADiNKcL50HydBqcov39a8or8Ks7378vLv6u1dXcp7d2ZiO6O/wA/L9vNa01vRaq+HZiJqjjPd5efPl5vZ0dw/pSyr0ZQfxQetHwdmvmWbuq6430Tj57lazry3VuuU4eW92bAaWw+IX2NaMnuvaS7YvNHPuWLlv64wdazpVm9/wCdUT75cXtmpvQCAZYEAgFAgACoDSA4XS3CnC4e8XPXqL+CFnZ/iexeZbs6Fdu78MI5y5+k6ysWN0zjPKPeDqGkuGuKq3VO1GL+HOXfN/RI6trVtqjfVv8A1+HDv64v3N1Hyx1/P/HXKtSUnrTk5Se1ybbfa2X4piIwpjByqq6qpxqnGXjZkwAOW0Pp2pQ92XvUvhvnH+V/TYczTtWW9J+aN1XPn55uxq7XFzRfkq+ajly8suDuWCx1KtHWpyvvWxrtXMeV0jRrtirs3Iw/U+UvaaNpdnSae1anH9x5w9g0LIAAAAAHjxFeFOOtOSjFc7f9XM7dqu7V2aIxlqu3qLVPbuThH3dT0zwjlUvCjeMOeX8Uuz4V8z02g6optYV3t9XLujOejyOsde1XcbdjdTz75yjq6+dt50A0nndfeWx/1zkYMomeLndG8LcZQsnU5SPw1PeduqW35spXdAs3OEYT9suDo2Na6Ra3TPaj758XbtFcM8NWtGp9jN/E7w7p/rY5d7V123vp3x1/DuaPrexd3VfLP34fnPB2LWTV1mnsZQdWN6MCAAKBAAADoXDXhDOVR4ajNxhDKq4uzlLnjdcy2W33O3q/RKYp+JXG+eDzOtdYVTXNm3O6OP3nl6OnnWcFUQlb37RwOLJKAABujWlCWtCTjJbGnZmFdumuns1RjDZbu126u1ROE/Zz2C4VVI5VYKa3r3Zd/M/kca/qO3VvtT2ftxjP9u/ov+RXaN16ntRzjdOX6czh+EWFntm4vdKL81dHKu6o0qjhGPlOeEu3Z15odzjV2fOMsYe7DSFB7K1P/Mj+pUq0S/Txon8Su06bo1XC5T/tCyx9Fba1P/Mj+pEaLfnhRP4lNWmaPTxuU/7Q9Svp/Cw/5us90U389nzLNvVWlV/xw8939ql3XOh2/wCePlv/AKcRjOFj2UadvxTd3+VfqdOxqKI33asftGf9OPpP+STO6xRh95yjNwGKxdSrLWqTcn1vZ2LYjt2bFuzT2bcYQ87f0m7fq7V2rGXgNzQAALsITwXb2+f7jgcWSUOd4McIJ4WpGMpN4eTtOLzUb/xR3W29ZS0zRKb1MzEfN73Olq/WFej1xTVPy98cvvD6gnfNc+w829kAAKBAAHpaZxyw+HqVeeEfd65PKPzaN2j2vi3Io5/rvV9Kv/Bs1XOUde58glJttt3bzb3tnqojDc8JMzM4yAQlABrb2kcE8WSUAAABUiEo2SgAu3t8yE8UJQAAAF2EJ4ISgA1t7fMhPFklD6fwJ0hy2Eim/fovk32LOL8Mu485rC18O9Mxwnfm9lqq/wDF0eInjTuy6OeKLpAFAgADp/GNjLU6dFP78nOXZHJfOT8Dq6qt411V8t35cLXt3C3TbjvnH8f9dCR23mBkgAAAVsgQkWKvkiMUxGO4tbaI3pmMJRsliAAAFbAgACpkCEgAAAVsJdp4vcZq4mVJvKtDL+aGa+TkczWlvG1FfKf27WpL3ZvTbnvjrH9YvoUnu2nBepVAUCAQDh9McG6WJqKdSpNNRUUouOrZNvni3fMt2NMqs04UxChpWr6NIq7VUzww3YZONXATDdLV8YeksbVu8o9+qpsOx4p6ZHsHhulq+MPSNq3eUe/U2HY8U9Mj2Dw3S1fGHpG1bvKPfqbDseKemS+weF6Wr4w9I2rd5R79TYdjxT0yPYLC9LV8YekbVu8o9+psOx4p6ZL7BYXpa3jD0jat3lHv1NhWPFPTIfALC9LW8YekbVu8o65mw7HinpksOA+GWyrVvzZw9JE6zuz3R1zZRqSxHCqemSy4CYZu7q1bvrh6RGtLsRhhHXNE6ksTOPanpknsDhelreMPSTtW7yjrmjYdjxT0yPYHC9LW/ND0jat3lHXM2HY8U9Mj2BwvS1vzQ9I2rd5R1zNh2PFPTI9gcL0tbxh6RtW7yjrmbDseKemR7A4Xpa3jD0jat3lHXM2HY8U9MiHATDJ5VavVnD5e6ROtLs90dc0xqSxH8p6ZNPgNh9jrVX2uHnqEbSud1Mdc2U6mszxqnpk8a4B4Xpa35oeky2rd5R79WGwrHinpkewWF6Wr4w9I2rd5R79TYdjxT0yPYPC9LV8YekbVu8o9+psOx4p6ZJ7B4bpavjD0jat3lHv1Nh2PFPTI9g8N0tXxh6RtW7yj36mw7HinpkeweG6Wr4w9I2rd5R79TYdjxT0yexgOCNChVjVhVq61N3V3C25p2jstc13dYXLlE0TEb/fNtsaptWbkXKapxjyydgSKDqtgUCAQC339wBAAAACgLgZ1gNRQGrgLgUABLgLgZTAXAAAIAAARsDKz+oG0gAFAgBoAkAAAAAAA0BIoDQC4C4C4C4C4C4EYBAAAAAAAjVwKgAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//9k='
+    bio: '',
+    avatar: null
   });
 
-  const [loading, setLoading] = useState(false);
+  const [profileSuccess, setProfileSuccess] = useState(false);
+  const [profileError, setProfileError] = useState('');
+  const [imageUploading, setImageUploading] = useState(false);
+  
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
   const [passwordError, setPasswordError] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        bio: user.bio || '',
+        avatar: user.avatar || null
+      });
+    }
+  }, [user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -25,6 +51,11 @@ const Profile = () => {
       ...formData,
       [name]: value
     });
+    
+    // Clear any existing errors when user types
+    if (profileError) {
+      setProfileError('');
+    }
   };
 
   const handlePasswordChange = (e) => {
@@ -40,22 +71,69 @@ const Profile = () => {
     }
   };
 
-  const handleProfileSubmit = (e) => {
+  const handleProfileSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setProfileSuccess(false);
+    setProfileError('');
+    setProfileLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      console.log('Updated profile:', formData);
-      setLoading(false);
-      // Will implement actual update functionality later
-    }, 1500);
+    try {
+      // Only send fields that the backend expects
+      const profileUpdate = {
+        name: formData.name,
+        phone: formData.phone,
+        bio: formData.bio
+      };
+      
+      // Only include avatar if it exists
+      if (formData.avatar) {
+        profileUpdate.avatar = formData.avatar;
+      }
+      
+      // For agent users, use agent profile update
+      if (user?.role === 'agent') {
+        const result = await dispatch(updateAgentProfile(profileUpdate)).unwrap();
+        if (result.data) {
+          dispatch(updateUser(result.data));
+        }
+      } else {
+        // For regular users or admins, use generic update route
+        const config = {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        };
+        
+        const response = await axios.put('/api/users/profile', profileUpdate, config);
+        
+        if (response.data.success) {
+          dispatch(updateUser(response.data.data));
+        }
+      }
+      
+      setProfileSuccess(true);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setProfileSuccess(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setProfileError(error.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setProfileLoading(false);
+    }
   };
 
-  const handlePasswordSubmit = (e) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     
     const { currentPassword, newPassword, confirmPassword } = passwordData;
+    
+    // Reset states
+    setPasswordError('');
+    setPasswordSuccess(false);
     
     // Basic validation
     if (newPassword !== confirmPassword) {
@@ -68,249 +146,436 @@ const Profile = () => {
       return;
     }
     
-    setLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      console.log('Password updated');
-      setLoading(false);
+    try {
+      setPasswordLoading(true);
+      
+      // Make API call to change password
+      await dispatch(changePassword({ 
+        currentPassword, 
+        newPassword 
+      })).unwrap();
+      
+      // Reset form fields on success
       setPasswordData({
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       });
-      // Will implement actual password update functionality later
-    }, 1500);
+      
+      setPasswordSuccess(true);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setPasswordSuccess(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Error changing password:', error);
+      setPasswordError(error.response?.data?.message || 'Failed to change password');
+    } finally {
+      setPasswordLoading(false);
+    }
   };
 
-  const handleAvatarChange = (e) => {
+  const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      // For now, just create a temporary URL for preview
-      const imageUrl = URL.createObjectURL(file);
-      setFormData({
-        ...formData,
-        avatar: imageUrl
+    if (!file) return;
+    
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      setProfileError('Please upload a valid image file (JPEG, PNG, or GIF)');
+      return;
+    }
+    
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setProfileError('Image size should be less than 2MB');
+      return;
+    }
+    
+    setImageUploading(true);
+    setProfileError('');
+    
+    try {
+      // Create a FormData object to send the file
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      // Make API call to upload image
+      const response = await axios.post('/api/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
       });
       
-      // Will implement actual image upload functionality later
+      if (response.data.success) {
+        setFormData(prev => ({
+          ...prev,
+          avatar: response.data.url
+        }));
+      } else {
+        throw new Error(response.data.message || 'Failed to upload image');
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      setProfileError(error.response?.data?.message || 'Failed to upload profile picture');
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
+  // Get default avatar URL based on user role
+  const getDefaultAvatar = () => {
+    if (!user) return 'https://via.placeholder.com/150?text=User';
+    
+    switch (user.role) {
+      case 'admin':
+        return 'https://via.placeholder.com/150?text=Admin';
+      case 'agent':
+        return 'https://via.placeholder.com/150?text=Agent';
+      default:
+        return 'https://via.placeholder.com/150?text=User';
     }
   };
 
   return (
-    <div>
-      <div className="mx-auto flex flex-col items-center">
-        <h1 className="text-2xl font-bold text-gray-800">Profile Settings</h1>
-        <p className="text-gray-600">Manage your account information</p>
-      </div>
+    <div className="bg-gray-50 p-6 min-h-screen">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-800">Profile Settings</h1>
+          <p className="text-gray-600 mt-2">Manage your account information and password</p>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Profile Information */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Profile Information</h2>
-            
-            <form onSubmit={handleProfileSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="name">
-                    Full Name
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FaUser className="text-gray-400" />
-                    </div>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="email">
-                    Email Address
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FaEnvelope className="text-gray-400" />
-                    </div>
-                    <input
-                      type="email"
-                      id="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="phone">
-                    Phone Number
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <FaPhone className="text-gray-400" />
-                    </div>
-                    <input
-                      type="tel"
-                      id="phone"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-                
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="bio">
-                    Bio
-                  </label>
-                  <div className="relative">
-                    <div className="absolute top-3 left-3 pointer-events-none">
-                      <FaInfoCircle className="text-gray-400" />
-                    </div>
-                    <textarea
-                      id="bio"
-                      name="bio"
-                      value={formData.bio}
-                      onChange={handleChange}
-                      rows="4"
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    ></textarea>
-                  </div>
-                </div>
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Profile Picture */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Profile Picture</h2>
               
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md flex items-center"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-                  ) : (
-                    <FaSave className="mr-2" />
-                  )}
-                  Save Changes
-                </button>
+              <div className="flex flex-col items-center">
+                <div className="w-32 h-32 rounded-full overflow-hidden mb-6 bg-gray-100 relative group">
+                  <img
+                    src={formData.avatar || getDefaultAvatar()}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null; // Prevent infinite loop
+                      e.target.src = getDefaultAvatar();
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <label className="cursor-pointer text-white">
+                      <FaCamera size={24} />
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif"
+                        className="hidden"
+                        onChange={handleAvatarChange}
+                        disabled={imageUploading}
+                      />
+                    </label>
+                  </div>
+                </div>
+                
+                <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition duration-150">
+                  Change Picture
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                    disabled={imageUploading}
+                  />
+                </label>
+                
+                {imageUploading && (
+                  <div className="mt-4 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-blue-500 mr-2"></div>
+                    <span className="text-sm text-gray-600">Uploading...</span>
+                  </div>
+                )}
+                
+                <p className="text-gray-500 text-sm mt-4 text-center">
+                  JPG, PNG or GIF. Max size 2MB.
+                </p>
+                
+                {/* Show role information */}
+                <div className="mt-6 pt-6 border-t border-gray-200 w-full">
+                  <div className="text-center">
+                    <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                      {user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1) || 'User'}
+                    </span>
+                    <p className="text-gray-500 text-sm mt-2">
+                      Account created on {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </form>
+            </div>
           </div>
           
-          {/* Change Password */}
-          <div className="bg-white rounded-lg shadow-md p-6 mt-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Change Password</h2>
-            
-            <form onSubmit={handlePasswordSubmit}>
-              <div className="space-y-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="currentPassword">
-                    Current Password
-                  </label>
-                  <input
-                    type="password"
-                    id="currentPassword"
-                    name="currentPassword"
-                    value={passwordData.currentPassword}
-                    onChange={handlePasswordChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="newPassword">
-                    New Password
-                  </label>
-                  <input
-                    type="password"
-                    id="newPassword"
-                    name="newPassword"
-                    value={passwordData.newPassword}
-                    onChange={handlePasswordChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                    minLength="6"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="confirmPassword">
-                    Confirm New Password
-                  </label>
-                  <input
-                    type="password"
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    value={passwordData.confirmPassword}
-                    onChange={handlePasswordChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      passwordError ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    required
-                  />
-                  {passwordError && (
-                    <p className="text-red-500 text-xs mt-1">{passwordError}</p>
-                  )}
-                </div>
-              </div>
+          {/* Profile Information and Password */}
+          <div className="lg:col-span-2">
+            {/* Profile Information */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+              <h2 className="text-xl font-semibold text-gray-800 mb-6">Profile Information</h2>
               
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md flex items-center"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
-                  ) : (
-                    <FaSave className="mr-2" />
-                  )}
-                  Update Password
-                </button>
-              </div>
-            </form>
+              {profileSuccess && (
+                <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
+                  <p className="font-medium">Success!</p>
+                  <p>Your profile has been updated successfully.</p>
+                </div>
+              )}
+              
+              {profileError && (
+                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+                  <p className="font-medium">Error!</p>
+                  <p>{profileError}</p>
+                </div>
+              )}
+              
+              <form onSubmit={handleProfileSubmit}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="name">
+                      Full Name
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <FaUser className="text-gray-400" />
+                      </div>
+                      <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="email">
+                      Email Address
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <FaEnvelope className="text-gray-400" />
+                      </div>
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
+                        disabled
+                        readOnly
+                      />
+                      <p className="text-xs text-gray-500 mt-1 flex items-center">
+                        <FaInfoCircle className="mr-1" /> Email cannot be changed
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="phone">
+                      Phone Number
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <FaPhone className="text-gray-400" />
+                      </div>
+                      <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g. (123) 456-7890"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="bio">
+                      Bio
+                    </label>
+                    <div className="relative">
+                      <div className="absolute top-3 left-3 pointer-events-none">
+                        <FaInfoCircle className="text-gray-400" />
+                      </div>
+                      <textarea
+                        id="bio"
+                        name="bio"
+                        value={formData.bio}
+                        onChange={handleChange}
+                        rows="4"
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Tell us about yourself..."
+                      ></textarea>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      This bio will be visible to users browsing your profile and properties.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md flex items-center transition duration-150"
+                    disabled={profileLoading || agentLoading || imageUploading}
+                  >
+                    {(profileLoading || agentLoading) ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <FaSave className="mr-2" /> Save Changes
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+            
+            {/* Change Password */}
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-6">Change Password</h2>
+              
+              {passwordSuccess && (
+                <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
+                  <p className="font-medium">Success!</p>
+                  <p>Your password has been updated successfully.</p>
+                </div>
+              )}
+              
+              {passwordError && (
+                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+                  <p className="font-medium">Error!</p>
+                  <p>{passwordError}</p>
+                </div>
+              )}
+              
+              <form onSubmit={handlePasswordSubmit}>
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="currentPassword">
+                      Current Password
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <FaLock className="text-gray-400" />
+                      </div>
+                      <input
+                        type="password"
+                        id="currentPassword"
+                        name="currentPassword"
+                        value={passwordData.currentPassword}
+                        onChange={handlePasswordChange}
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter your current password"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="newPassword">
+                      New Password
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <FaLock className="text-gray-400" />
+                      </div>
+                      <input
+                        type="password"
+                        id="newPassword"
+                        name="newPassword"
+                        value={passwordData.newPassword}
+                        onChange={handlePasswordChange}
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter new password"
+                        required
+                        minLength="6"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Password must be at least 6 characters long.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="confirmPassword">
+                      Confirm New Password
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <FaLock className="text-gray-400" />
+                      </div>
+                      <input
+                        type="password"
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        value={passwordData.confirmPassword}
+                        onChange={handlePasswordChange}
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Confirm new password"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md flex items-center transition duration-150"
+                    disabled={passwordLoading}
+                  >
+                    {passwordLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                        Updating...
+                      </>
+                    ) : (
+                      <>
+                        <FaSave className="mr-2" /> Update Password
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
-        
-        {/* Profile Picture */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Profile Picture</h2>
-            
-            <div className="flex flex-col items-center">
-              <div className="w-32 h-32 rounded-full overflow-hidden mb-4">
-                <img
-                  src={formData.avatar}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              
-              <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
-                Change Picture
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarChange}
-                />
-              </label>
-              
-              <p className="text-gray-500 text-sm mt-2 text-center">
-                JPG, GIF or PNG. Max size 2MB.
-              </p>
+
+        {/* Security Tips Section */}
+        <div className="mt-8 bg-white rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Security Tips</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="font-medium text-blue-700 mb-2">Strong Password</h3>
+              <p className="text-sm text-gray-700">Use a combination of uppercase and lowercase letters, numbers, and special characters.</p>
+            </div>
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="font-medium text-blue-700 mb-2">Regular Updates</h3>
+              <p className="text-sm text-gray-700">Change your password regularly and avoid reusing passwords across different sites.</p>
+            </div>
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="font-medium text-blue-700 mb-2">Keep Contact Info Current</h3>
+              <p className="text-sm text-gray-700">Keep your phone number and email up to date to receive important account notifications.</p>
+            </div>
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="font-medium text-blue-700 mb-2">Profile Privacy</h3>
+              <p className="text-sm text-gray-700">Your profile information is shared with other users on the platform. Only share what you're comfortable with.</p>
             </div>
           </div>
         </div>

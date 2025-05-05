@@ -35,7 +35,7 @@ const UserSchema = new mongoose.Schema({
   },
   avatar: {
     type: String,
-    default: 'https://res.cloudinary.com/demo/image/upload/v1580125506/samples/people/smiling-man.jpg'
+    default: 'https://img.freepik.com/premium-photo/round-user-icon-isolated-white-background-3d-rendering_499459-408.jpg'
   },
   bio: {
     type: String,
