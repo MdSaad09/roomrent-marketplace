@@ -11,7 +11,9 @@ const {
   approveProperty,
   getAgentProperties,
   toggleFavorite,
-  getUserFavorites
+  getUserFavorites,
+  rejectProperty,
+  resubmitProperty
 } = require('../controllers/property.controller.js');
 const { protect, authorize } = require('../middleware/auth.middleware.js');
 
@@ -32,9 +34,11 @@ router.put('/favorite/:id', protect, toggleFavorite);
 router.post('/', protect, authorize('admin', 'agent'), createProperty);
 router.put('/:id', protect, authorize('admin', 'agent'), updateProperty);
 router.delete('/:id', protect, authorize('admin', 'agent'), deleteProperty);
+router.put('/:id/resubmit', protect, authorize('agent'), resubmitProperty);
 
 // Admin only routes
 router.get('/admin/pending', protect, authorize('admin'), getPendingProperties);
 router.put('/:id/approve', protect, authorize('admin'), approveProperty);
+router.put('/:id/reject', protect, authorize('admin'), rejectProperty);
 
 module.exports = router;

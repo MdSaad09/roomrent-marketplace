@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchPropertyById, updateProperty } from '../../redux/slices/propertySlice';
+import { fetchPropertyById, updateProperty, resubmitRejectedProperty } from '../../redux/slices/propertySlice';
 import PropertyForm from '../../components/properties/PropertyForm';
-import { FaInfoCircle } from 'react-icons/fa';
+import { FaInfoCircle, FaExclamationCircle } from 'react-icons/fa';
 import { setAlert } from '../../redux/slices/uiSlice';
 
 const EditProperty = () => {
@@ -19,6 +19,7 @@ const EditProperty = () => {
   
   const [error, setError] = useState('');
   const [initialLoading, setInitialLoading] = useState(true);
+  const [isResubmitting, setIsResubmitting] = useState(false);
   
   useEffect(() => {
     const loadProperty = async () => {
@@ -72,17 +73,30 @@ const EditProperty = () => {
     try {
       console.log("Submitting property update:", propertyData);
       
-      // For agents, ensure the property stays unpublished after edits
-      if (user.role === 'agent') {
-        propertyData.published = false;
+      // Check if this is a resubmission of a rejected property
+      const isRejected = property.rejectionReason && property.rejectionReason.trim() !== '';
+      
+      if (isRejected) {
+        setIsResubmitting(true);
+        // Use the resubmit endpoint for rejected properties
+        await dispatch(resubmitRejectedProperty({ id, propertyData })).unwrap();
+        dispatch(setAlert({
+          type: 'success',
+          message: 'Property resubmitted for approval'
+        }));
+      } else {
+        // For agents, ensure the property stays unpublished after edits
+        if (user.role === 'agent') {
+          propertyData.published = false;
+        }
+        
+        await dispatch(updateProperty({ id, propertyData })).unwrap();
+        
+        dispatch(setAlert({
+          type: 'success',
+          message: 'Property updated successfully'
+        }));
       }
-      
-      await dispatch(updateProperty({ id, propertyData })).unwrap();
-      
-      dispatch(setAlert({
-        type: 'success',
-        message: 'Property updated successfully'
-      }));
       
       navigate('/agent/properties');
     } catch (err) {
@@ -92,6 +106,8 @@ const EditProperty = () => {
         type: 'error',
         message: 'Failed to update property: ' + (err.message || '')
       }));
+    } finally {
+      setIsResubmitting(false);
     }
   };
   
@@ -117,11 +133,38 @@ const EditProperty = () => {
     );
   }
   
+  const isRejected = property.rejectionReason && property.rejectionReason.trim() !== '';
+  
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-800 mb-6">Edit Property</h1>
+
+      {/* Rejection Notice */}
+      {isRejected && (
+        <div className="mb-6">
+          <div className="bg-red-50 border-l-4 border-red-500 p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <FaExclamationCircle className="h-5 w-5 text-red-400" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-lg font-medium text-red-800">This property was rejected</h3>
+                <div className="mt-2 text-red-700">
+                  <p><strong>Reason:</strong> {property.rejectionReason}</p>
+                </div>
+                <div className="mt-4">
+                  <p className="text-sm text-gray-700">
+                    Please address the issues mentioned above and then resubmit for review.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
-      {!property.published && (
+      {/* Pending Notice (only show if not rejected) */}
+      {!property.published && !isRejected && (
         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
           <div className="flex">
             <div className="flex-shrink-0">
@@ -149,8 +192,9 @@ const EditProperty = () => {
       <PropertyForm 
         property={property} 
         onSubmit={handleSubmit} 
-        loading={loading}
+        loading={loading || isResubmitting}
         isAgent={true}
+        submitButtonText={isRejected ? "Resubmit for Approval" : "Update Property"}
       />
     </div>
   );

@@ -449,12 +449,20 @@ exports.getPendingProperties = async (req, res) => {
       });
     }
     
-    // Find properties that are unpublished
-    const properties = await Property.find({ published: false })
-      .populate({
-        path: 'owner',
-        select: 'name email avatar phone role'
-      });
+    // Find properties that are unpublished AND don't have a rejection reason
+    // This means they are truly pending approval, not rejected
+    const properties = await Property.find({ 
+      published: false,
+      $or: [
+        { rejectionReason: { $exists: false } },
+        { rejectionReason: null },
+        { rejectionReason: '' }
+      ]
+    })
+    .populate({
+      path: 'owner',
+      select: 'name email avatar phone role'
+    });
     
     res.status(200).json({
       success: true,
@@ -679,3 +687,89 @@ exports.toggleFavorite = async (req, res) => {
           });
         }
       };
+
+// @desc    Reject a property (set approved to false with reason)
+// @route   PUT /api/properties/:id/reject
+// @access  Private/Admin
+exports.rejectProperty = async (req, res) => {
+  try {
+    const property = await Property.findById(req.params.id);
+    
+    if (!property) {
+      return res.status(404).json({
+        success: false,
+        message: 'Property not found'
+      });
+    }
+    
+    // Update property status
+    property.approved = false;
+    property.published = false; // Also set published to false when rejecting
+    property.rejectionReason = req.body.reason;
+    
+    await property.save();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Property rejected successfully',
+      data: property
+    });
+  } catch (err) {
+    console.error('Error rejecting property:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+
+// @desc    Resubmit a rejected property
+// @route   PUT /api/properties/:id/resubmit
+// @access  Private/Agent
+exports.resubmitProperty = async (req, res) => {
+  try {
+    const property = await Property.findById(req.params.id);
+    
+    if (!property) {
+      return res.status(404).json({
+        success: false,
+        message: 'Property not found'
+      });
+    }
+    
+    // Ensure the agent is the owner of this property
+    if (property.owner.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update this property'
+      });
+    }
+    
+    // Clear rejection reason and reset statuses for review
+    const updateData = { 
+      ...req.body,
+      rejectionReason: undefined,  // Clear rejection reason
+      published: false,            // Mark as unpublished (pending)
+      approved: null               // Reset approval status
+    };
+    
+    // Update property
+    const updatedProperty = await Property.findByIdAndUpdate(
+      req.params.id, 
+      updateData, 
+      { new: true, runValidators: true }
+    );
+    
+    res.status(200).json({
+      success: true,
+      message: 'Property resubmitted for approval',
+      data: updatedProperty
+    });
+  } catch (err) {
+    console.error('Error resubmitting property:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Error resubmitting property'
+    });
+  }
+};

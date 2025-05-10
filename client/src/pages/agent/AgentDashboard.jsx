@@ -47,9 +47,10 @@ const AgentDashboard = () => {
     }
   };
   
-  // Filter for published and unpublished properties
+  // Filter for published, pending approval, and rejected properties
   const publishedProperties = userProperties?.filter(prop => prop.published) || [];
-  const pendingProperties = userProperties?.filter(prop => !prop.published) || [];
+  const pendingProperties = userProperties?.filter(prop => !prop.published && !prop.rejectionReason) || [];
+  const rejectedProperties = userProperties?.filter(prop => prop.rejectionReason) || [];
   
   const isLoading = (propertiesLoading || statsLoading) && !userProperties.length && !agentDashboardStats;
   
@@ -130,15 +131,9 @@ const AgentDashboard = () => {
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div className="flex items-center mb-4 md:mb-0">
-              <img 
-                src={user?.avatar || 'https://via.placeholder.com/60'}
-                alt={user?.name || 'Agent'}
-                className="h-16 w-16 rounded-full object-cover mr-4"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = 'https://via.placeholder.com/60?text=Agent';
-                }}
-              />
+              <div className="h-16 w-16 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold mr-4">
+                {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
+              </div>
               <div>
                 <h2 className="text-xl font-semibold text-gray-800">{user?.name || 'Agent'}</h2>
                 <p className="text-gray-600">{user?.email || 'No email'}</p>
@@ -155,8 +150,8 @@ const AgentDashboard = () => {
           </div>
         </div>
         
-        {/* Statistics - Now using agentDashboardStats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Statistics - Updated to include rejected properties */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="font-semibold text-lg mb-2">Total Properties</h3>
             <p className="text-3xl font-bold text-indigo-600">
@@ -174,7 +169,14 @@ const AgentDashboard = () => {
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="font-semibold text-lg mb-2">Pending Approval</h3>
             <p className="text-3xl font-bold text-yellow-600">
-              {agentDashboardStats?.unpublishedProperties || pendingProperties.length}
+              {pendingProperties.length}
+            </p>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h3 className="font-semibold text-lg mb-2">Rejected</h3>
+            <p className="text-3xl font-bold text-red-600">
+              {rejectedProperties.length}
             </p>
           </div>
         </div>
@@ -217,9 +219,15 @@ const AgentDashboard = () => {
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                           property.published 
                             ? 'bg-green-100 text-green-800' 
-                            : 'bg-yellow-100 text-yellow-800'
+                            : property.rejectionReason
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-yellow-100 text-yellow-800'
                         }`}>
-                          {property.published ? 'Published' : 'Pending'}
+                          {property.published 
+                            ? 'Published' 
+                            : property.rejectionReason 
+                              ? 'Rejected' 
+                              : 'Pending'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -227,9 +235,11 @@ const AgentDashboard = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
-                          <Link to={`/properties/${property._id}`} className="text-blue-600 hover:text-blue-900">
-                            <FaEye />
-                          </Link>
+                          {property.published && (
+                            <Link to={`/properties/${property._id}`} className="text-blue-600 hover:text-blue-900">
+                              <FaEye />
+                            </Link>
+                          )}
                           <Link to={`/agent/properties/edit/${property._id}`} className="text-indigo-600 hover:text-indigo-900">
                             <FaEdit />
                           </Link>
@@ -299,9 +309,96 @@ const AgentDashboard = () => {
             </div>
           </div>
         )}
+
+        {/* Rejected Properties */}
+        {rejectedProperties.length > 0 && (
+          <div className="mb-10">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Rejected Properties</h2>
+            <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <FaExclamationCircle className="h-5 w-5 text-red-400" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-red-700">
+                    These properties were rejected by an administrator. Please review the feedback and make necessary changes before resubmitting.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {rejectedProperties.map(property => (
+                <div key={property._id} className="relative">
+                  <div className="absolute top-0 right-0 bg-red-500 text-white py-1 px-3 z-10 rounded-bl-lg">
+                    Rejected
+                  </div>
+                  <div className="border border-gray-200 rounded-lg overflow-hidden shadow-md bg-white">
+                    {/* Property Image */}
+                    <div className="h-48 bg-gray-200 relative">
+                      {property.images && property.images[0] ? (
+                        <img 
+                          src={property.images[0].url} 
+                          alt={property.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = '/images/property-placeholder.jpg';
+                          }}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-gray-400">
+                          <FaHome size={48} />
+                        </div>
+                      )}
+                      <div className="absolute top-0 left-0 bg-indigo-500 text-white px-2 py-1 text-sm">
+                        {property.status?.replace('-', ' ').toUpperCase() || 'FOR SALE'}
+                      </div>
+                    </div>
+                    
+                    {/* Property Details */}
+                    <div className="p-4">
+                      <h3 className="font-semibold text-lg mb-1 text-gray-800 truncate">{property.title}</h3>
+                      <p className="text-gray-600 mb-2">{formatAddress(property)}</p>
+                      <p className="text-indigo-600 font-bold text-xl mb-2">${property.price?.toLocaleString() || 0}</p>
+                      
+                      {/* Rejection Reason */}
+                      <div className="mb-3 p-3 bg-red-50 border border-red-100 rounded-md">
+                        <h4 className="font-semibold text-red-700 mb-1">Rejection Reason:</h4>
+                        <p className="text-sm text-gray-700">{property.rejectionReason}</p>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-gray-500">
+                          {property.bedrooms || 0} beds • {property.bathrooms || 0} baths • {property.size || 0} sqft
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="border-t border-gray-200 p-4 bg-gray-50 flex justify-end space-x-2">
+                      <Link 
+                        to={`/agent/properties/edit/${property._id}`}
+                        className="bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700 transition-colors flex items-center"
+                      >
+                        <FaEdit className="mr-1" /> Edit & Resubmit
+                      </Link>
+                      <button
+                        onClick={() => openDeleteModal(property)}
+                        className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition-colors flex items-center"
+                      >
+                        <FaTrash className="mr-1" /> Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         
-        {/* Published Properties */}
-        <div>
+                {/* Published Properties */}
+                <div>
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Published Properties</h2>
           
           {publishedProperties.length === 0 ? (
@@ -326,6 +423,7 @@ const AgentDashboard = () => {
                     <Link 
                       to={`/properties/${property._id}`}
                       className="text-blue-600 hover:text-blue-800"
+                      target="_blank"
                     >
                       <FaEye size={20} />
                     </Link>
@@ -348,6 +446,25 @@ const AgentDashboard = () => {
           )}
         </div>
         
+        {/* Empty State if no properties at all */}
+        {userProperties.length === 0 && (
+          <div className="bg-white rounded-lg shadow-md p-8 text-center mt-8">
+            <div className="mx-auto h-20 w-20 text-gray-400 mb-4">
+              <FaHome size={50} className="mx-auto" />
+            </div>
+            <h3 className="text-xl font-medium text-gray-800 mb-2">No Properties Yet</h3>
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">
+              Start building your property portfolio by adding your first property listing.
+            </p>
+            <Link 
+              to="/agent/properties/add" 
+              className="inline-flex items-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-medium"
+            >
+              <FaPlus className="mr-2" /> Add Your First Property
+            </Link>
+          </div>
+        )}
+        
         {/* Confirmation Modal for Delete */}
         <ConfirmModal
           isOpen={deleteModalOpen}
@@ -365,3 +482,4 @@ const AgentDashboard = () => {
 };
 
 export default AgentDashboard;
+        

@@ -241,6 +241,39 @@ export const approveProperty = createAsyncThunk(
   }
 );
 
+// Resubmit a rejected property
+export const resubmitRejectedProperty = createAsyncThunk(
+  'properties/resubmitRejectedProperty',
+  async ({ id, propertyData }, { rejectWithValue, dispatch }) => {
+    try {
+      // Clear rejection fields and set for review
+      const updateData = {
+        ...propertyData,
+        rejectionReason: undefined, // Clear rejection reason
+        published: false,  // Set back to unpublished for review
+        approved: null     // Reset approval status
+      };
+      
+      const { data } = await axios.put(`/api/properties/${id}/resubmit`, updateData, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      dispatch(setAlert({ type: 'success', message: 'Property resubmitted for approval' }));
+      
+      return data;
+    } catch (error) {
+      dispatch(setAlert({ 
+        type: 'error', 
+        message: error.response?.data?.message || 'Failed to resubmit property' 
+      }));
+      return rejectWithValue(error.response?.data || { message: 'Failed to resubmit property' });
+    }
+  }
+);
+
 export const toggleFavorite = createAsyncThunk(
   'properties/toggleFavorite',
   async (propertyId, { rejectWithValue, dispatch, getState }) => {
@@ -308,6 +341,9 @@ export const toggleFavorite = createAsyncThunk(
     }
   }
 );
+
+
+
 
 export const updateUserData = createAction('auth/updateUserData');
 
@@ -500,6 +536,23 @@ const propertySlice = createSlice({
         state.error = action.payload;
       })
 
+      .addCase(resubmitRejectedProperty.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(resubmitRejectedProperty.fulfilled, (state, action) => {
+        state.loading = false;
+        
+        // Update the property in the userProperties array
+        state.userProperties = state.userProperties.map(property => 
+          property._id === action.payload.data._id ? action.payload.data : property
+        );
+      })
+      .addCase(resubmitRejectedProperty.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+
       // Update user data (for favorites)
       .addCase(toggleFavorite.pending, (state) => {
         state.loading = true;
@@ -511,6 +564,7 @@ const propertySlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+     
   }
 });
 

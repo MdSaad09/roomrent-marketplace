@@ -112,6 +112,16 @@ const PropertySchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  approved: {
+    type: Boolean,
+    default: function() {
+      // Auto-approve properties created by admin, require approval for agents
+      return this.owner && this.owner.role === 'admin';
+    }
+  },
+  rejectionReason: {
+    type: String
   }
 });
 

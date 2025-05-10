@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { getDashboardStats } from '../../redux/slices/adminSlice';
-import { FaUsers, FaHome, FaEnvelope, FaUserPlus, FaExclamationTriangle } from 'react-icons/fa';
+import { fetchAdminDashboardStats } from '../../redux/slices/adminSlice';
+import { FaUsers, FaHome, FaEnvelope, FaUserPlus, FaExclamationTriangle, FaPlus, FaList, FaClock } from 'react-icons/fa';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 
@@ -14,7 +14,7 @@ const AdminDashboard = () => {
   const { dashboardStats, loading, error } = useSelector(state => state.admin);
   
   useEffect(() => {
-    dispatch(getDashboardStats());
+    dispatch(fetchAdminDashboardStats());
   }, [dispatch]);
   
   // Format date
@@ -66,10 +66,10 @@ const AdminDashboard = () => {
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative mb-6">
           <div className="flex items-center">
             <FaExclamationTriangle className="mr-2" />
-            <span>Error loading dashboard data: {error}</span>
+            <span>Error loading dashboard data: {error.message || error}</span>
           </div>
           <button 
-            onClick={() => dispatch(getDashboardStats())}
+            onClick={() => dispatch(fetchAdminDashboardStats())}
             className="mt-2 bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded text-sm"
           >
             Retry
@@ -77,6 +77,66 @@ const AdminDashboard = () => {
         </div>
       ) : (
         <>
+          {/* Quick Actions Section */}
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Link 
+                to="/admin/properties/pending" 
+                className="flex items-center p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 hover:bg-amber-100 transition duration-200"
+              >
+                <div className="p-3 rounded-full bg-amber-100 text-amber-600 mr-4">
+                  <FaClock className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-medium">Pending Properties</p>
+                  <p className="text-sm">
+                    {dashboardStats?.counts?.pendingProperties || 0} need review
+                  </p>
+                </div>
+              </Link>
+              
+              <Link 
+                to="/admin/properties/add" 
+                className="flex items-center p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 hover:bg-green-100 transition duration-200"
+              >
+                <div className="p-3 rounded-full bg-green-100 text-green-600 mr-4">
+                  <FaPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-medium">Add Property</p>
+                  <p className="text-sm">Create new listing</p>
+                </div>
+              </Link>
+              
+              <Link 
+                to="/admin/users" 
+                className="flex items-center p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 hover:bg-blue-100 transition duration-200"
+              >
+                <div className="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+                  <FaUsers className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-medium">Manage Users</p>
+                  <p className="text-sm">{dashboardStats?.counts?.users || 0} total users</p>
+                </div>
+              </Link>
+              
+              <Link 
+                to="/admin/properties" 
+                className="flex items-center p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-indigo-700 hover:bg-indigo-100 transition duration-200"
+              >
+                <div className="p-3 rounded-full bg-indigo-100 text-indigo-600 mr-4">
+                  <FaList className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-medium">All Properties</p>
+                  <p className="text-sm">{dashboardStats?.counts?.properties || 0} total listings</p>
+                </div>
+              </Link>
+            </div>
+          </div>
+          
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <div className="bg-white rounded-lg shadow-md p-6">
@@ -208,12 +268,22 @@ const AdminDashboard = () => {
                       <tr key={user._id}>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10">
-                              <img 
-                                className="h-10 w-10 rounded-full object-cover" 
-                                src={user.avatar || 'https://via.placeholder.com/40?text=User'} 
-                                alt={user.name} 
-                              />
+                            <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
+                              {user.avatar ? (
+                                <img 
+                                  className="h-10 w-10 rounded-full object-cover" 
+                                  src={user.avatar} 
+                                  alt={user.name} 
+                                  onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = 'https://via.placeholder.com/40?text=User';
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-gray-600 font-semibold text-lg">
+                                  {user.name.charAt(0).toUpperCase()}
+                                </span>
+                              )}
                             </div>
                             <div className="ml-4">
                               <div className="text-sm font-medium text-gray-900">{user.name}</div>
@@ -224,7 +294,7 @@ const AdminDashboard = () => {
                           <div className="text-sm text-gray-500">{user.email}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                             user.role === 'admin' 
                               ? 'bg-purple-100 text-purple-800' 
                               : user.role === 'agent'
@@ -249,9 +319,15 @@ const AdminDashboard = () => {
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold text-gray-800">Recent Properties</h2>
-              <Link to="/admin/properties" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                View All
-              </Link>
+              <div className="flex space-x-2">
+                <Link to="/admin/properties/pending" className="text-amber-600 hover:text-amber-800 text-sm font-medium">
+                  Pending ({dashboardStats?.counts?.pendingProperties || 0})
+                </Link>
+                <span className="text-gray-300">|</span>
+                <Link to="/admin/properties" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                  View All
+                </Link>
+              </div>
             </div>
             
             {!dashboardStats?.recent?.properties?.length ? (
@@ -283,12 +359,20 @@ const AdminDashboard = () => {
                       <tr key={property._id}>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10">
-                              <img 
-                                className="h-10 w-10 rounded object-cover" 
-                                src={property.images?.[0]?.url || 'https://via.placeholder.com/40?text=No+Image'} 
-                                alt={property.title} 
-                              />
+                            <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded flex items-center justify-center">
+                              {property.images?.[0]?.url ? (
+                                <img 
+                                  className="h-10 w-10 rounded object-cover" 
+                                  src={property.images[0].url} 
+                                  alt={property.title}
+                                  onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = 'https://via.placeholder.com/40?text=No+Image';
+                                  }}
+                                />
+                              ) : (
+                                <FaHome className="text-gray-400" />
+                              )}
                             </div>
                             <div className="ml-4">
                               <div className="text-sm font-medium text-gray-900">{property.title}</div>
@@ -303,7 +387,7 @@ const AdminDashboard = () => {
                           <div className="text-sm text-gray-900">{property.owner?.name || 'Unknown'}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                             property.status === 'for-sale' 
                               ? 'bg-blue-100 text-blue-800' 
                               : property.status === 'for-rent'
@@ -316,6 +400,11 @@ const AdminDashboard = () => {
                              property.status === 'for-rent' ? 'For Rent' : 
                              property.status === 'sold' ? 'Sold' : 'Rented'}
                           </span>
+                          {property.approved === false && (
+                            <span className="ml-1 px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">
+                              Pending
+                            </span>
+                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           ${property.price?.toLocaleString() || 0}

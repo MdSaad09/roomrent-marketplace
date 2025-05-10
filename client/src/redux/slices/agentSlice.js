@@ -6,6 +6,7 @@ const initialState = {
   agents: [],
   agent: null,
   agentDashboardStats: null,
+  agentProperties: [],
   loading: false,
   error: null,
   pagination: {
@@ -79,6 +80,20 @@ export const fetchAgentDashboardStats = createAsyncThunk(
       return data;
     } catch (error) {
       return rejectWithValue(error.response?.data || { message: 'Failed to fetch dashboard stats' });
+    }
+  }
+);
+
+// NEW: Get agent's own properties
+export const fetchAgentOwnProperties = createAsyncThunk(
+  'agents/fetchAgentOwnProperties',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const queryParams = new URLSearchParams(params).toString();
+      const { data } = await axios.get(`/api/agents/dashboard/properties?${queryParams}`);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { message: 'Failed to fetch properties' });
     }
   }
 );
@@ -189,6 +204,33 @@ const agentSlice = createSlice({
         }
       })
       .addCase(fetchAgentDashboardStats.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
+      // NEW: Fetch agent's own properties
+      .addCase(fetchAgentOwnProperties.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAgentOwnProperties.fulfilled, (state, action) => {
+        state.loading = false;
+        if (action.payload && action.payload.data) {
+          state.agentProperties = action.payload.data;
+          
+          // Set pagination if it exists
+          if (action.payload.pagination) {
+            state.pagination = {
+              currentPage: action.payload.pagination?.page || 1,
+              totalPages: action.payload.pagination?.pages || 1,
+              total: action.payload.total || 0
+            };
+          }
+        } else {
+          state.agentProperties = [];
+        }
+      })
+      .addCase(fetchAgentOwnProperties.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })

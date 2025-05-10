@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaSearch, FaEdit, FaTrash, FaUserPlus, FaExclamationTriangle, FaTimes } from 'react-icons/fa';
 import { useDispatch, useSelector } from 'react-redux';
-import { getUsers, deleteUser, updateUser, createUser } from '../../redux/slices/adminSlice';
+import { fetchAllUsers, deleteUser, updateUser, createUser } from '../../redux/slices/adminSlice';
 import { setAlert } from '../../redux/slices/uiSlice';
 
 const ManageUsers = () => {
@@ -26,7 +26,7 @@ const ManageUsers = () => {
 
   // Fetch users on component mount
   useEffect(() => {
-    dispatch(getUsers());
+    dispatch(fetchAllUsers());
   }, [dispatch]);
 
   const handleSearch = (e) => {
@@ -175,7 +175,7 @@ const ManageUsers = () => {
             <span>Error loading users: {error.message || JSON.stringify(error)}</span>
           </div>
           <button 
-            onClick={() => dispatch(getUsers())}
+            onClick={() => dispatch(fetchAllUsers())}
             className="mt-2 bg-red-600 hover:bg-red-700 text-white py-1 px-3 rounded text-sm"
           >
             Retry

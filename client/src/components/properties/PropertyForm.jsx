@@ -1,9 +1,9 @@
 // client/src/components/properties/PropertyForm.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { FaUpload, FaTrash, FaSpinner, FaInfoCircle, FaTimes } from 'react-icons/fa';
+import { FaUpload, FaTrash, FaSpinner, FaInfoCircle, FaTimes, FaSave } from 'react-icons/fa';
 import axios from 'axios';
 
-const PropertyForm = ({ property, onSubmit, loading, isAgent = false }) => {
+const PropertyForm = ({ property, onSubmit, loading, isAgent = false, submitButtonText = null }) => {
   const initialState = {
     title: '',
     description: '',
@@ -21,7 +21,8 @@ const PropertyForm = ({ property, onSubmit, loading, isAgent = false }) => {
       country: 'USA'
     },
     features: [],
-    images: []
+    images: [],
+    rejectionReason: '' // Add this to track rejection status
   };
 
   const fileInputRef = useRef(null);
@@ -29,10 +30,14 @@ const PropertyForm = ({ property, onSubmit, loading, isAgent = false }) => {
   const [featureInput, setFeatureInput] = useState('');
   const [uploadingImages, setUploadingImages] = useState(false);
   const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
   
   // Add local state for preview images similar to admin component
   const [images, setImages] = useState([]);
   const [imageError, setImageError] = useState('');
+  
+  // Add state to track if this is a resubmission of a rejected property
+  const [isRejected, setIsRejected] = useState(false);
 
   useEffect(() => {
     if (property) {
@@ -53,8 +58,12 @@ const PropertyForm = ({ property, onSubmit, loading, isAgent = false }) => {
           country: property.address?.country || 'USA'
         },
         features: property.features || [],
-        images: [] // We'll handle images separately
+        images: [], // We'll handle images separately
+        rejectionReason: property.rejectionReason || '' // Store rejection reason
       });
+      
+      // Set rejected flag if there's a rejection reason
+      setIsRejected(property.rejectionReason && property.rejectionReason.trim() !== '');
       
       // If property has images, set them up for display
       if (property.images && property.images.length > 0) {
@@ -315,6 +324,9 @@ const PropertyForm = ({ property, onSubmit, loading, isAgent = false }) => {
       return;
     }
     
+    // Set submitting state to prevent multiple submissions
+    setSubmitting(true);
+    
     try {
       // Separate preview images that need to be uploaded from existing images
       const previewImages = images.filter(img => img.isPreview);
@@ -348,7 +360,17 @@ const PropertyForm = ({ property, onSubmit, loading, isAgent = false }) => {
         images: propertyImages
       };
       
-      console.log('Submitting property data:', propertyData);
+      // For rejected properties being resubmitted, clear the rejection reason
+      if (isRejected) {
+        propertyData.rejectionReason = '';
+        propertyData.approved = null; // Reset approval status for review
+      }
+      
+      console.log('Submitting property data:', {
+        ...propertyData,
+        isRejected,
+        imageCount: propertyData.images.length
+      });
       
       // Submit the property data
       onSubmit(propertyData);
@@ -365,7 +387,22 @@ const PropertyForm = ({ property, onSubmit, loading, isAgent = false }) => {
         ...errors,
         submit: error.message || 'Failed to prepare property data'
       });
+    } finally {
+      setSubmitting(false);
     }
+  };
+
+  // Determine the submit button text based on context
+  const getSubmitButtonText = () => {
+    if (submitButtonText) {
+      return submitButtonText;
+    }
+    
+    if (isRejected) {
+      return 'Resubmit for Approval';
+    }
+    
+    return property ? 'Update Property' : 'Create Property';
   };
 
   return (
@@ -388,7 +425,31 @@ const PropertyForm = ({ property, onSubmit, loading, isAgent = false }) => {
         </div>
       )}
 
-      {/* Form fields - no changes needed here */}
+      {/* Rejection Notice - If editing a previously rejected property */}
+      {isRejected && formData.rejectionReason && (
+        <div className="mb-6">
+          <div className="bg-red-50 border-l-4 border-red-500 p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <FaInfoCircle className="h-5 w-5 text-red-400" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-lg font-medium text-red-800">This property was rejected</h3>
+                <div className="mt-2 text-red-700">
+                  <p><strong>Reason:</strong> {formData.rejectionReason}</p>
+                </div>
+                <div className="mt-4">
+                  <p className="text-sm text-gray-700">
+                    Please address the issues mentioned above before resubmitting.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rest of the form remains unchanged */}
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-gray-800 mb-4">Basic Information</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -452,7 +513,7 @@ const PropertyForm = ({ property, onSubmit, loading, isAgent = false }) => {
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-md"
             >
-              <option value="house">House</option>
+                            <option value="house">House</option>
               <option value="apartment">Apartment</option>
               <option value="condo">Condo</option>
               <option value="townhouse">Townhouse</option>
@@ -729,7 +790,8 @@ const PropertyForm = ({ property, onSubmit, loading, isAgent = false }) => {
         )}
       </div>
 
-      {isAgent && (
+      {/* Conditional message for agents */}
+      {isAgent && !isRejected && (
         <div className="mb-6 bg-blue-50 border-l-4 border-blue-400 p-4">
           <div className="flex">
             <div className="flex-shrink-0">
@@ -745,20 +807,38 @@ const PropertyForm = ({ property, onSubmit, loading, isAgent = false }) => {
         </div>
       )}
 
+      {/* Resubmission message for agents with rejected properties */}
+      {isAgent && isRejected && (
+        <div className="mb-6 bg-amber-50 border-l-4 border-amber-400 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <FaInfoCircle className="h-5 w-5 text-amber-400" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-amber-700">
+                After making the necessary changes, please resubmit this property for approval. 
+                Our team will review it again.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-end">
         <button
           type="submit"
-          disabled={loading || uploadingImages}
+          disabled={loading || uploadingImages || submitting}
           className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium flex items-center"
         >
-          {loading || uploadingImages ? (
+          {loading || uploadingImages || submitting ? (
             <>
               <FaSpinner className="animate-spin mr-2" />
               {uploadingImages ? 'Uploading Images...' : 'Saving...'}
             </>
           ) : (
             <>
-              {property ? 'Update Property' : 'Create Property'}
+              <FaSave className="mr-2" /> 
+              {getSubmitButtonText()}
             </>
           )}
         </button>
