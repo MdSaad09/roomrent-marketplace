@@ -24,11 +24,23 @@ const ManageProperties = () => {
   const [limit, setLimit] = useState(10);
 
   // Fetch properties on component mount
+  // In the useEffect where you fetch properties
   useEffect(() => {
+    // In the loadProperties function
     const loadProperties = async () => {
       try {
-        await dispatch(fetchProperties({ page, limit })).unwrap();
+        // console.log('Fetching properties with includeUnpublished=true');
+        // console.log('Current auth token:', localStorage.getItem('token'));
+        
+        await dispatch(fetchProperties({ 
+          page, 
+          limit,
+          includeUnpublished: true 
+        })).unwrap();
+        
+        // console.log('Properties fetched successfully:', properties);
       } catch (error) {
+        // console.error('Error fetching properties:', error);
         dispatch(setAlert({
           type: 'error',
           message: error.message || 'Failed to fetch properties'
@@ -37,7 +49,7 @@ const ManageProperties = () => {
     };
     
     loadProperties();
-  }, [dispatch, page, limit]);
+  }, [dispatch, page, limit, filter]); // Add filter to dependency array
 
   // Filter and search properties
   useEffect(() => {
@@ -75,6 +87,13 @@ const ManageProperties = () => {
 
   const handleFilterChange = (e) => {
     setFilter(e.target.value);
+    
+    // Refresh properties when filter changes
+    dispatch(fetchProperties({ 
+      page, 
+      limit,
+      includeUnpublished: true 
+    }));
   };
 
   const openDeleteModal = (property) => {
@@ -101,8 +120,12 @@ const ManageProperties = () => {
         message: 'Property deleted successfully'
       }));
       
-      // Refresh the properties list
-      await dispatch(fetchProperties({ page, limit })).unwrap();
+      // Refresh the properties list with includeUnpublished
+      await dispatch(fetchProperties({ 
+        page, 
+        limit, 
+        includeUnpublished: true 
+      })).unwrap();
       
       setDeleteModalOpen(false);
       setPropertyToDelete(null);

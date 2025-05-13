@@ -31,13 +31,14 @@ export const fetchProperties = createAsyncThunk(
   'properties/fetchProperties',
   async (params = {}, { rejectWithValue, getState, dispatch }) => {
     try {
-      console.log('fetchProperties thunk executing with params:', params);
+      // console.log('fetchProperties thunk executing with params:', params);
       
       const { filters, pagination } = getState().properties;
       const queryParams = {
         ...filters,
         ...params,
-        page: params.page || pagination.currentPage
+        page: params.page || pagination.currentPage,
+        includeUnpublished: params.includeUnpublished || false
       };
       
       // Remove empty filters
@@ -47,14 +48,21 @@ export const fetchProperties = createAsyncThunk(
       
       // Build query string
       const queryString = new URLSearchParams(queryParams).toString();
-      console.log('API request URL:', `/api/properties?${queryString}`);
+      // console.log('API request URL:', `/api/properties?${queryString}`);
       
-      const response = await axios.get(`/api/properties?${queryString}`);
-      console.log('API response:', response.data);
+      // Add authentication headers
+      const config = {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      };
+      
+      const response = await axios.get(`/api/properties?${queryString}`, config);
+      // console.log('API response:', response.data);
       
       return response.data;
     } catch (error) {
-      console.error('API error in fetchProperties:', error.response || error);
+      // console.error('API error in fetchProperties:', error.response || error);
       
       // Log a more user-friendly error message
       dispatch(setAlert({
@@ -376,7 +384,7 @@ const propertySlice = createSlice({
       })
       // In propertySlice.js
       .addCase(fetchProperties.fulfilled, (state, action) => {
-        console.log('fetchProperties.fulfilled with payload:', action.payload);
+        // console.log('fetchProperties.fulfilled with payload:', action.payload);
         state.loading = false;
         
         // Check what format the data is in
@@ -399,7 +407,7 @@ const propertySlice = createSlice({
           }
         } else {
           // Fallback - try to find properties in the response
-          console.warn('Unexpected API response format:', action.payload);
+          // console.warn('Unexpected API response format:', action.payload);
           state.properties = action.payload || [];
         }
       })

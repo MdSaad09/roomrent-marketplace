@@ -42,12 +42,12 @@ exports.createProperty = async (req, res) => {
       propertyData.published = false; // Require admin approval
     }
     
-    console.log('Creating property with data:', {
-      title: propertyData.title,
-      owner: propertyData.owner,
-      imageCount: propertyData.images?.length || 0,
-      published: propertyData.published
-    });
+    // console.log('Creating property with data:', {
+    //   title: propertyData.title,
+    //   owner: propertyData.owner,
+    //   imageCount: propertyData.images?.length || 0,
+    //   published: propertyData.published
+    // });
     
     const property = await Property.create(propertyData);
     
@@ -56,7 +56,7 @@ exports.createProperty = async (req, res) => {
       data: property
     });
   } catch (err) {
-    console.error('Error creating property:', err);
+    // console.error('Error creating property:', err);
     res.status(500).json({
       success: false,
       message: err.message
@@ -69,22 +69,32 @@ exports.createProperty = async (req, res) => {
 // @access  Public
 exports.getProperties = async (req, res) => {
   try {
-    console.log('Received query params:', req.query);
+  
     
     // Build the filter object
     let filters = {};
     
-    // By default, only show published properties to public users
-    // Admins can see all, and agents can see their own unpublished properties
-    if (!req.user || req.user.role === 'user') {
+    // FIXED LOGIC: Handle includeUnpublished parameter properly
+    if (req.query.includeUnpublished === 'true' && req.user && req.user.role === 'admin') {
+      // Don't add published filter for admins when includeUnpublished is true
+      // console.log('Including unpublished properties for admin');
+    } else if (!req.user || req.user.role === 'user') {
       filters.published = true;
+      // console.log('User is public or regular user, showing only published properties');
     } else if (req.user.role === 'agent' && req.query.showMine) {
       // If an agent wants to see their own properties
       filters.owner = req.user.id;
+      // console.log('Agent viewing their own properties');
     } else if (req.user.role !== 'admin') {
       // For agents viewing all properties (not their own)
       filters.published = true;
+      // console.log('Agent viewing all properties, showing only published');
+    } else {
+      // Default for admin users without includeUnpublished
+      // console.log('Admin user, not filtering by published status');
     }
+    
+    // console.log('Final filters:', filters);
     
     // Handle status filter (for-sale, for-rent)
     if (req.query.status) {
@@ -119,7 +129,7 @@ exports.getProperties = async (req, res) => {
       filters.owner = req.query.agent;
     }
     
-    console.log('Applied filters:', filters);
+    // console.log('Applied filters:', filters);
     
     // Create base query
     let query = Property.find(filters).populate({
@@ -193,7 +203,7 @@ exports.getProperties = async (req, res) => {
       };
     }
     
-    console.log(`Found ${properties.length} properties matching filters`);
+    // console.log(`Found ${properties.length} properties matching filters`);
     
     res.status(200).json({
       success: true,
@@ -255,8 +265,7 @@ exports.getProperty = async (req, res) => {
   }
 };
 
-// Update only the updateProperty function in property.controller.js
-// In property.controller.js, update the updateProperty function:
+
 
 exports.updateProperty = async (req, res) => {
   try {
