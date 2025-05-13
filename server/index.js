@@ -125,9 +125,7 @@ mongoose.connect(process.env.MONGODB_URI)
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // API Routes
-app.get('/', (req, res) => {
-  res.json({ message: 'RoomRent Marketplace API is running' });
-});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes); // Removed duplicate
 app.use('/api/properties', propertyRoutes);
@@ -136,6 +134,13 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api/inquiries', inquiryRoutes);
+
+// Serve static files from the React/frontend build
+app.use(express.static(path.join(__dirname, '../client/dist')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+});
 
 // Serve static files from the uploads directory (if needed)
 app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
