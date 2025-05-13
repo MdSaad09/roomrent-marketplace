@@ -42,6 +42,8 @@ import AddProperty from './pages/admin/AddProperty';
 import EditProperty from './pages/admin/EditProperty';
 import MyProperties from './pages/admin/MyProperties';
 import PendingProperties from './pages/admin/PendingProperties';
+import Inquiries from './pages/admin/Inquiries';
+import MyInquiries from './pages/dashboard/MyInquiries';
 
 // Routes
 import PrivateRoute from './components/routing/PrivateRoute';
@@ -118,6 +120,7 @@ const App = () => {
           <Route path="properties/edit/:id" element={<EditProperty />} />
           <Route path="agents" element={<Agents />} />
           <Route path="agents/:id" element={<AgentProfile />} />
+          <Route path="inquiries" element={<Inquiries />} /> {/* Add this new route */}
         </Route>
         
         {/* 404 Route */}
@@ -128,3 +131,5 @@ const App = () => {
 };
 
 export default App;
+{/* Add this new route */}
+<Route path="/dashboard/inquiries" element={<PrivateRoute><MyInquiries /></PrivateRoute>} />

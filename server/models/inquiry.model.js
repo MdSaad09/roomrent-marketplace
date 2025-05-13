@@ -11,6 +11,11 @@ const InquirySchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  // Add this field to store the original property owner
+  originalOwner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   message: {
     type: String,
     required: [true, 'Please add a message'],
@@ -27,7 +32,13 @@ const InquirySchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
-  }
+  },
+  response: {
+    type: String
+  },
+  respondedAt: {
+    type: Date
+  },
 });
 
 module.exports = mongoose.model('Inquiry', InquirySchema);

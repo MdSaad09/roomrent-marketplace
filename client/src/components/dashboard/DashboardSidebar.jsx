@@ -36,6 +36,12 @@ const DashboardSidebar = () => {
       name: 'Favorites',
       icon: <FaHeart className="w-5 h-5" />
     },
+    // Add this new item
+    {
+      path: '/dashboard/inquiries',
+      name: 'My Inquiries',
+      icon: <FaEnvelope className="w-5 h-5" />
+    },
     {
       path: '/dashboard/profile',
       name: 'Profile',

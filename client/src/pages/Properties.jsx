@@ -12,7 +12,7 @@ const Properties = () => {
 
   // Get properties state with fallback
   const propertiesState = useSelector(state => state.properties || {});
-  console.log('Properties State:', propertiesState);
+  // console.log('Properties State:', propertiesState);
   
   // Add default values to prevent undefined errors
   const { 

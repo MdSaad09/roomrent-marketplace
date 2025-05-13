@@ -13,7 +13,10 @@ const {
   getAgents,
   updateAgentStatus,
   getPendingProperties,
-  getAgentPropertyStats
+  getAgentPropertyStats,
+  getInquiries,
+  updateInquiryStatus,
+  deleteInquiry,
 } = require('../controllers/admin.controller.js');
 const { protect, authorize } = require('../middleware/auth.middleware.js');
 
@@ -59,5 +62,10 @@ router.route('/agents/:id/status')
 
 // Analytics
 router.get('/agent-stats', getAgentPropertyStats);
+
+// Inquiry management
+router.get('/inquiries', getInquiries);
+router.put('/inquiries/:id/status', updateInquiryStatus);
+router.delete('/inquiries/:id', deleteInquiry); // Add this line
 
 module.exports = router;

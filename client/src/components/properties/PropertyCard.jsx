@@ -46,9 +46,9 @@ const PropertyCard = ({ property }) => {
     return url;
   };
 
-  console.log('Property:', property);
-  console.log('Image URL:', property.images?.[0]?.url);
-  console.log('Processed URL:', getImageUrl(property.images?.[0]?.url));
+  // console.log('Property:', property);
+  // console.log('Image URL:', property.images?.[0]?.url);
+  // console.log('Processed URL:', getImageUrl(property.images?.[0]?.url));
   
   const handleToggleFavorite = (e) => {
     e.preventDefault(); // Prevent navigation

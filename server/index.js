@@ -16,6 +16,11 @@ const imageRoutes = require('./routes/image.routes.js')
 const agentRoutes = require('./routes/agent.routes');
 const { ensurePropertyImageUrls } = require('./middleware/image.middleware');
 
+const inquiryRoutes = require('./routes/inquiry.routes.js');
+
+
+
+
 
 
 // Load environment variables
@@ -47,6 +52,11 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/agents', agentRoutes);
+
+
+
+app.use('/api/inquiries', inquiryRoutes); // Add this line
+app.use('/api/users', userRoutes);
 
 // Serve static files from the uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

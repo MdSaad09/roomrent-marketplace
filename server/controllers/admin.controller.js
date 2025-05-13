@@ -555,3 +555,102 @@ exports.getAgentPropertyStats = async (req, res) => {
     });
   }
 };
+
+// @desc    Get all inquiries
+// @route   GET /api/admin/inquiries
+// @access  Private/Admin
+exports.getInquiries = async (req, res) => {
+  try {
+    const inquiries = await Inquiry.find()
+      .populate({
+        path: 'property',
+        select: 'title images'
+      })
+      .populate({
+        path: 'user',
+        select: 'name email avatar'
+      })
+      .sort({ createdAt: -1 });
+    
+    res.status(200).json({
+      success: true,
+      count: inquiries.length,
+      data: inquiries
+    });
+  } catch (err) {
+    console.error('Error fetching inquiries:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Server error'
+    });
+  }
+};
+
+// @desc    Update inquiry status
+// @route   PUT /api/admin/inquiries/:id/status
+// @access  Private/Admin
+exports.updateInquiryStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    if (!['pending', 'responded', 'closed'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status value'
+      });
+    }
+    
+    const inquiry = await Inquiry.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+    
+    if (!inquiry) {
+      return res.status(404).json({
+        success: false,
+        message: 'Inquiry not found'
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: inquiry
+    });
+  } catch (err) {
+    console.error('Error updating inquiry status:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Server error'
+    });
+  }
+};
+
+// @desc    Delete an inquiry
+// @route   DELETE /api/admin/inquiries/:id
+// @access  Private/Admin
+exports.deleteInquiry = async (req, res) => {
+  try {
+    const inquiry = await Inquiry.findById(req.params.id);
+    
+    if (!inquiry) {
+      return res.status(404).json({
+        success: false,
+        message: 'Inquiry not found'
+      });
+    }
+    
+    await inquiry.deleteOne();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Inquiry deleted successfully'
+    });
+  } catch (err) {
+    console.error('Error deleting inquiry:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Server error'
+    });
+  }
+};

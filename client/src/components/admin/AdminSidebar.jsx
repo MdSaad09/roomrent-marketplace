@@ -11,7 +11,8 @@ import {
   FaSignOutAlt, 
   FaUserCog, 
   FaClipboardList,
-  FaIdCard  // Added for agent management
+  FaIdCard,  // Added for agent management
+  FaEnvelope  // Add this for inquiries
 } from 'react-icons/fa';
 import Logo from '../common/Logo';
 
@@ -68,6 +69,11 @@ const AdminSidebar = () => {
       path: '/admin/agents',
       name: 'Manage Agents',
       icon: <FaIdCard className="w-5 h-5" />
+    },
+    {
+      path: '/admin/inquiries',  // Add this new route
+      name: 'Inquiries',
+      icon: <FaEnvelope className="w-5 h-5" />
     },
     {
       path: '/admin/properties',
