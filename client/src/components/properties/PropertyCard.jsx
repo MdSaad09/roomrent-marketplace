@@ -141,7 +141,7 @@ const PropertyCard = ({ property }) => {
             </Link>
           </h3>
           <p className="text-lg font-bold text-blue-600">
-            ${property.price?.toLocaleString() || 0}
+            ₹{property.price?.toLocaleString() || 0}
             {property.status === 'for-rent' && '/mo'}
           </p>
         </div>

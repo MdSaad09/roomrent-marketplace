@@ -430,7 +430,7 @@ const Home = () => {
         </section>
         
         {/* Recent Blog Posts Section */}
-        <section className="py-16">
+        {/*<section className="py-16">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-4">Latest Articles</h2>
@@ -489,25 +489,25 @@ const Home = () => {
               </Link>
             </div>
           </div>
-        </section>
+        </section>*/}
         
         {/* CTA Section */}
-        <section className="py-16 bg-indigo-700 text-white">
+        <section className="py-16 bg-white text-gray-800">
           <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl font-bold mb-4">Ready to Find Your Perfect Property?</h2>
-            <p className="text-xl mb-8 max-w-2xl mx-auto">
+            <h2 className="text-3xl font-bold mb-4 text-gray-800">Ready to Find Your Perfect Property?</h2>
+            <p className="text-xl mb-8 max-w-2xl mx-auto text-gray-600">
               Join thousands of satisfied customers who found their dream homes through our platform.
             </p>
             <div className="flex flex-col md:flex-row justify-center gap-4">
               <Link 
                 to="/properties" 
-                className="bg-white text-indigo-700 hover:bg-tranparent px-6 py-3 rounded-md font-medium transition duration-300"
+                className="bg-indigo-700 text-white hover:bg-indigo-800 px-6 py-3 rounded-md font-medium transition duration-300"
               >
                 Browse Properties
               </Link>
               <Link 
                 to="/register" 
-                className="bg-transparent hover:bg-white hover:text-indigo-700 text-white border border-white px-6 py-3 rounded-md font-medium transition duration-300"
+                className="bg-transparent hover:bg-indigo-700 hover:text-white text-indigo-700 border border-indigo-700 px-6 py-3 rounded-md font-medium transition duration-300"
               >
                 Create Account
               </Link>

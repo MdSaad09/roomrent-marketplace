@@ -225,7 +225,7 @@ const PropertyDetails = () => {
             </div>
             <div className="mt-4 md:mt-0">
               <div className="text-2xl font-bold text-blue-600">
-                ${property.price?.toLocaleString() || "Price not available"}
+                ₹{property.price?.toLocaleString() || "Price not available"}
                 {property.status === 'for-rent' && '/mo'}
               </div>
               <div className="mt-2 flex space-x-2">

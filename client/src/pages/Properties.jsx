@@ -148,7 +148,7 @@ const Properties = () => {
                     <div className="flex justify-between items-start">
                       <h3 className="text-xl font-semibold text-gray-800 mb-2">{property.title}</h3>
                       <p className="text-blue-600 font-bold">
-                        ${property.price?.toLocaleString() || 'Price unavailable'}
+                        ₹{property.price?.toLocaleString() || 'Price unavailable'}
                         {property.status === 'for-rent' && '/mo'}
                       </p>
                     </div>

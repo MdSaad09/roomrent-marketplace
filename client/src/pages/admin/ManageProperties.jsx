@@ -310,7 +310,7 @@ const ManageProperties = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      ${property.price.toLocaleString()}
+                      ₹{property.price.toLocaleString()}
                       {property.status === 'for-rent' && '/mo'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

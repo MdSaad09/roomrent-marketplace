@@ -234,7 +234,7 @@ const MyProperties = () => {
                 <div className="p-4 md:w-3/4">
                   <div className="flex justify-between mb-2">
                     <h3 className="text-xl font-semibold text-gray-800">{property.title}</h3>
-                    <p className="font-bold text-indigo-600">${property.price.toLocaleString()}</p>
+                    <p className="font-bold text-indigo-600">₹{property.price.toLocaleString()}</p>
                   </div>
                   
                   <p className="text-gray-600 mb-2">

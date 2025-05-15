@@ -184,7 +184,7 @@ const PendingProperties = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      ${property.price?.toLocaleString() || '0'}
+                      ₹{property.price?.toLocaleString() || '0'}
                       {property.status === 'for-rent' && '/mo'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

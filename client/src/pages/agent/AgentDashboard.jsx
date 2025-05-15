@@ -213,7 +213,7 @@ const AgentDashboard = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">${property.price?.toLocaleString() || 'N/A'}</div>
+                        <div className="text-sm text-gray-900">₹{property.price?.toLocaleString() || 'N/A'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -360,7 +360,7 @@ const AgentDashboard = () => {
                     <div className="p-4">
                       <h3 className="font-semibold text-lg mb-1 text-gray-800 truncate">{property.title}</h3>
                       <p className="text-gray-600 mb-2">{formatAddress(property)}</p>
-                      <p className="text-indigo-600 font-bold text-xl mb-2">${property.price?.toLocaleString() || 0}</p>
+                      <p className="text-indigo-600 font-bold text-xl mb-2">₹{property.price?.toLocaleString() || 0}</p>
                       
                       {/* Rejection Reason */}
                       <div className="mb-3 p-3 bg-red-50 border border-red-100 rounded-md">

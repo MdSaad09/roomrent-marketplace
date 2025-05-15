@@ -24,15 +24,7 @@ const router = express.Router();
 // router.get('/', getProperties);
 
 // To this - make it optionally protected
-router.get('/', (req, res, next) => {
-  // If no auth header, proceed as public
-  if (!req.headers.authorization) {
-    return next();
-  }
-  
-  // Otherwise, apply auth middleware
-  protect(req, res, next);
-}, getProperties);
+router.get('/', getProperties);
 router.get('/featured', getFeaturedProperties);
 router.get('/agent/:id', getAgentProperties);
 router.get('/:id', getPropertyById);

@@ -166,7 +166,7 @@ const Dashboard = () => {
                   </p>
                   <div className="flex justify-between mt-2">
                     <span className="text-primary font-medium">
-                      ${property.price.toLocaleString()}
+                      ₹{property.price.toLocaleString()}
                       {property.status === 'for-rent' && '/mo'}
                     </span>
                     <span className="text-sm text-gray-500 flex items-center">
